@@ -1,12 +1,12 @@
 export type Person = {
   name: string;
   role: "trainee" | "lead";
-};
-
-export type TraineeGroup = {
-  members: Person[];
+  trainee_preferences: string[];
+  lead_preferences: string[];
+  github: String;
+  discord: String;
 };
 
 export interface Groups {
-  [key: string]: TraineeGroup;
+  [key: string]: Person[];
 }
