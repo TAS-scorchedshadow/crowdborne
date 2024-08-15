@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { DndContext, DragOverlay, closestCorners } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  closestCorners,
+} from "@dnd-kit/core";
 import SortableContainer from "./components/SortableContainer";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Groups } from "./types";
@@ -13,25 +18,6 @@ import * as Dialog from "@radix-ui/react-dialog";
  * relevant for this example and are therefore omitted. */
 
 const defaultItems: Groups = {};
-function FileButton(props: { setterFn: any }) {
-  function handleClick() {
-    invoke("load_file")
-      // `invoke` returns a Promise
-      .then((response) => {
-        props.setterFn(response);
-      });
-  }
-  return (
-    <div>
-      <button
-        className="bg-blue-700 px-3 rounded-lg py-1"
-        onClick={() => handleClick()}
-      >
-        Load File
-      </button>
-    </div>
-  );
-}
 
 function DragApp() {
   const [items, setItems] = useState<Groups>(defaultItems);
@@ -78,7 +64,7 @@ function DragApp() {
         </div>
       </div>
       <DndContext
-        collisionDetection={closestCorners}
+        collisionDetection={closestCenter}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
@@ -108,8 +94,11 @@ function DragApp() {
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
-                      setItems((items) => ({ ...items, [newName]: [] }));
+                      if (!(newName in items)) {
+                        setItems((items) => ({ ...items, [newName]: [] }));
+                      }
                       setModalOpen(false);
+                      console.log(items);
                     }}
                   >
                     <input
