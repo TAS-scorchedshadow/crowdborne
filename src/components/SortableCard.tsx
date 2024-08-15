@@ -8,7 +8,7 @@ export function Card(props: { person: Person }) {
     <div
       className={`${
         props.person.role == "trainee" ? "bg-[#2894A7]" : "bg-red-600"
-      } w-full p-1 rounded-md`}
+      } w-full p-1 rounded-md drop-shadow`}
     >
       <div>{props.person.name}</div>
     </div>
