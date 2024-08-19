@@ -3,8 +3,7 @@
 
 use csv;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, error::Error, fs::File, path::PathBuf, vec};
-use tauri::api::file;
+use std::{collections::HashMap, error::Error, path::PathBuf, vec};
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -17,9 +16,11 @@ struct CSVFormat {
     role: String,
     trainee_preferences: String,
     lead_preferences: String,
-    github: String,
-    discord: String,
+    difficulty: String,
     group: String,
+    github: Option<String>,
+    discord: Option<String>,
+    other: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -29,8 +30,10 @@ struct PersonRecord {
     role: String,
     lead_preferences: Vec<String>,
     trainee_preferences: Vec<String>,
-    github: String,
-    discord: String,
+    difficulty: String,
+    github: Option<String>,
+    discord: Option<String>,
+    other: Option<String>,
 }
 
 fn split_str(string: String, delimiter: char) -> Vec<String> {
@@ -51,17 +54,16 @@ fn run_parser(file_path: PathBuf) -> Result<HashMap<String, Vec<PersonRecord>>, 
             role: record.role,
             trainee_preferences: split_str(record.trainee_preferences, ','),
             lead_preferences: split_str(record.lead_preferences, ','),
+            difficulty: record.difficulty,
             github: record.github,
             discord: record.discord,
+            other: record.other,
         };
-        dbg!(&vecd);
         results
             .entry(record.group.clone())
             .and_modify(|group| group.push(vecd.clone()))
             .or_insert(vec![vecd]);
     }
-    let headers = rdr.headers()?;
-    println!("{:?}", headers);
     Ok(results)
 }
 
@@ -88,7 +90,9 @@ fn load_file() -> Result<HashMap<String, Vec<PersonRecord>>, String> {
 #[tauri::command]
 fn save_file(groups: HashMap<String, Vec<PersonRecord>>) -> Result<(), String> {
     use tauri::api::dialog::blocking::FileDialogBuilder;
-    let file_path = FileDialogBuilder::new().save_file();
+    let file_path = FileDialogBuilder::new()
+        .add_filter("csv", &["csv"])
+        .save_file();
     if let Some(fp) = file_path {
         let mut wtr = csv::Writer::from_path(fp).map_err(|e| e.to_string())?;
         for (key, val) in &groups {
@@ -99,12 +103,16 @@ fn save_file(groups: HashMap<String, Vec<PersonRecord>>) -> Result<(), String> {
                     group: key.to_string(),
                     trainee_preferences: record.trainee_preferences.join(","),
                     lead_preferences: record.lead_preferences.join(","),
+                    difficulty: record.difficulty.clone(),
                     github: record.github.clone(),
                     discord: record.discord.clone(),
+                    other: record.other.clone(),
                 };
                 let _ = wtr.serialize(out_format);
             }
         }
+    } else {
+        return Err("No file picked".to_string());
     }
 
     Ok(())

@@ -1,51 +1,30 @@
-# React + TypeScript + Vite
+# Crowdborne - Group Assignment UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Rough UI to help with assigning groups based on who people want to be with. Designed for specialised use for DevSoc's Training Program.
 
-Currently, two official plugins are available:
+Does **not** contain an assignment alogrithm
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Build
 
-## Expanding the ESLint configuration
+Build will be created in the **src/target** directory
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```sh
+npm run tauri build
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### Running in development mode
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+```sh
+npm run tauri dev
 ```
-# crowdborne
+
+## File Format
+
+```csv
+name,role,lead_preferences,trainee_preferences,difficulty,github,discord,group
+a,trainee,"b,c",,easy,example,example,0
+b,lead,,a,normal,example,example,0
+v,lead,b,a,arbitrary,example,example,0
+```
+
+Both lead preferences and trainee preference fields should be a list of comma seperated identifiers

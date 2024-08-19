@@ -1,18 +1,22 @@
-import React, { useState } from "react";
+import { createContext, useState } from "react";
 import {
   DndContext,
-  DragOverlay,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  UniqueIdentifier,
   closestCenter,
-  closestCorners,
 } from "@dnd-kit/core";
 import SortableContainer from "./components/SortableContainer";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Groups } from "./types";
+import { Groups, Person } from "./types";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api";
 import { useHotkeys } from "react-hotkeys-hook";
 import Container from "./components/Container";
 import * as Dialog from "@radix-ui/react-dialog";
+import { ShowDifficultyContext } from "./context/ShowDifficultyContext";
+import { ActiveContext } from "./context/ActiveContext";
 
 /* The implementation details of <Item> and <ScrollableList> are not
  * relevant for this example and are therefore omitted. */
@@ -23,27 +27,38 @@ function DragApp() {
   const [items, setItems] = useState<Groups>(defaultItems);
   const [newName, setNewName] = useState<string>("");
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [activeItem, setActiveItem] = useState<Person | null>(null);
+  const [showDifficulty, setShowDifficulty] = useState<boolean>(false);
+
   useHotkeys("ctrl+o", () => handleLoad());
   useHotkeys("ctrl+s", () => handleSave());
   useHotkeys("ctrl+t", () => setModalOpen(true));
+  useHotkeys("d", () => setShowDifficulty((b) => !b));
+
   function handleSave() {
     invoke("save_file", { groups: items })
       // `invoke` returns a Promise
-      .then((response) => {
+      .then((_) => {
         toast.success("Saved File Successfully");
-        console.log(response);
+      })
+      .catch((e) => {
+        toast.error(`File Save Error: ${e}`);
       });
   }
+
   function handleLoad() {
     invoke("load_file")
-      // `invoke` returns a Promise
-      .then((response) => setItems(response));
+      .then((response) => setItems(response as Groups))
+      .catch((e) => {
+        toast.error(`File Load Error: ${e}`);
+      });
   }
+
   return (
     <div>
       <div className="w-screen text-center mt-5">
         <h1 className="font-bold text-7xl">Crowdborne</h1>
-        <h3 className="font-bold text-2xl">A Training Program Masterpiece</h3>
+        <h3 className="font-bold text-2xl">A Training Program MatchMaker</h3>
       </div>
       <div className="w-screen flex justify-center my-5 gap-8">
         <div>
@@ -63,62 +78,81 @@ function DragApp() {
           </button>
         </div>
       </div>
-      <DndContext
-        collisionDetection={closestCenter}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
-      >
-        <div className="flex flex-wrap gap-4 mx-8">
-          {Object.entries(items).map(([key, item]) => {
-            return (
-              <SortableContainer id={key} items={item}></SortableContainer>
-            );
-          })}
-          <Container>
-            <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
-              <Dialog.Trigger asChild>
-                <div className="rounded-lg bg-gray-600 h-full border-dashed border-2">
-                  <button
-                    className="flex w-full h-full items-center justify-center flex-col transition hover:bg-gray-500"
-                    onClick={() => console.log("clicked")}
-                  >
-                    <div className="text-7xl">+</div>
-                    <div className="text-xl">New Group</div>
-                  </button>
-                </div>
-              </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/10" />
-                <Dialog.Content className="bg-white fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] p-4 rounded-lg text-black">
-                  <Dialog.Title className="DialogTitle">Add Team</Dialog.Title>
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (!(newName in items)) {
-                        setItems((items) => ({ ...items, [newName]: [] }));
-                      }
-                      setModalOpen(false);
-                      console.log(items);
-                    }}
-                  >
-                    <input
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      type="text"
-                      name="team"
-                      className="w-full bg-white border-2 border-black rounded-sm"
-                    />
-                  </form>
-                </Dialog.Content>
-              </Dialog.Portal>
-            </Dialog.Root>
-          </Container>
-        </div>
-      </DndContext>
+      <ActiveContext.Provider value={activeItem}>
+        <ShowDifficultyContext.Provider value={showDifficulty}>
+          <DndContext
+            collisionDetection={closestCenter}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
+          >
+            <div className="flex flex-wrap gap-4 mx-8">
+              {Object.entries(items).map(([key, item]) => {
+                return (
+                  <SortableContainer id={key} items={item}></SortableContainer>
+                );
+              })}
+              <Container>
+                <Dialog.Root open={modalOpen} onOpenChange={setModalOpen}>
+                  <Dialog.Trigger asChild>
+                    <div className="rounded-lg bg-gray-600 h-full border-dashed border-2">
+                      <button className="flex w-full h-full items-center justify-center flex-col transition hover:bg-gray-500">
+                        <div className="text-7xl">+</div>
+                        <div className="text-xl">New Group</div>
+                      </button>
+                    </div>
+                  </Dialog.Trigger>
+                  <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 bg-black/10" />
+                    <Dialog.Content className="bg-white fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] p-4 rounded-lg text-black">
+                      <Dialog.Title className="DialogTitle">
+                        Add Team
+                      </Dialog.Title>
+                      <Dialog.Description>
+                        Dialog for specifying the name for a new team
+                      </Dialog.Description>
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          if (!(newName in items)) {
+                            setItems((items) => ({ ...items, [newName]: [] }));
+                          }
+                          setModalOpen(false);
+                          console.log(items);
+                        }}
+                      >
+                        <input
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          type="text"
+                          name="team"
+                          className="w-full bg-white border-2 border-black rounded-sm"
+                        />
+                      </form>
+                    </Dialog.Content>
+                  </Dialog.Portal>
+                </Dialog.Root>
+              </Container>
+            </div>
+          </DndContext>
+        </ShowDifficultyContext.Provider>
+      </ActiveContext.Provider>
+      <div className="fixed right-0 bottom-0 w-[250px]">
+        <ul>
+          <li>[D] = Toggle Same Difficulty</li>
+          <li>Black = Difficulty {activeItem?.difficulty}</li>
+          <li>Green = Mutual</li>
+          <li>Yellow = Selected Wants</li>
+          <li>Blue = Wants Selected</li>
+        </ul>
+      </div>
     </div>
   );
-  function findContainer(id): string | undefined {
+
+  function findContainer(uid: UniqueIdentifier): string | undefined {
+    const id = uid.toString();
     if (id in items) {
+      // If id corresponds to a container return
       return id;
     }
     return Object.keys(items).find((key) => {
@@ -126,7 +160,26 @@ function DragApp() {
       return names.includes(id);
     });
   }
-  function onDragOver({ active, over }) {
+
+  function getActiveItem(uid: UniqueIdentifier): Person | null {
+    const id = uid.toString();
+    for (const container of Object.values(items)) {
+      for (const person of container) {
+        if (person.name === id) {
+          return person;
+        }
+      }
+    }
+    return null;
+  }
+
+  function onDragStart(event: DragStartEvent) {
+    let { active } = event;
+    setActiveItem(getActiveItem(active.id.toString()));
+  }
+  1;
+  function onDragOver(event: DragOverEvent) {
+    let { active, over } = event;
     const overId = over?.id;
 
     if (overId == null || active.id in items) {
@@ -136,7 +189,6 @@ function DragApp() {
     const overContainer = findContainer(overId);
     const activeContainer = findContainer(active.id);
 
-    console.log(overContainer, activeContainer);
     if (!overContainer || !activeContainer) {
       return;
     }
@@ -188,10 +240,13 @@ function DragApp() {
     }
   }
 
-  function onDragEnd(event: { active: any; over: any }) {
+  function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     const { id } = active;
-    const { id: overId } = over;
+    if (over == undefined) {
+      return;
+    }
+    const overId = over.id;
 
     const activeContainer = findContainer(id);
     const overContainer = findContainer(overId);
@@ -219,6 +274,7 @@ function DragApp() {
         ),
       }));
     }
+    //setActiveItem(null);
   }
 }
 
