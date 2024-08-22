@@ -19,8 +19,12 @@ export function Card(props: { person: Person }) {
       return "border-4 border-black";
     }
 
-    if (showDifficulty && active.difficulty == props.person.difficulty) {
-      return "border-4 border-black border-dashed";
+    if (showDifficulty) {
+      if (active.difficulty == props.person.difficulty) {
+        return "border-4 border-black border-dashed";
+      } else {
+        return "";
+      }
     }
 
     const wanted = inPreferences(active, props.person);

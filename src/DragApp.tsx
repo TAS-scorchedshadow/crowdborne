@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -137,13 +137,23 @@ function DragApp() {
           </DndContext>
         </ShowDifficultyContext.Provider>
       </ActiveContext.Provider>
+      <div className="fixed left-0 bottom-0 w-[250px] pl-2">
+        {activeItem ? `Selected: ${activeItem.name}` : ""}
+      </div>
       <div className="fixed right-0 bottom-0 w-[250px]">
         <ul>
-          <li>[D] = Toggle Same Difficulty</li>
-          <li>Black = Difficulty {activeItem?.difficulty}</li>
-          <li>Green = Mutual</li>
-          <li>Yellow = Selected Wants</li>
-          <li>Blue = Wants Selected</li>
+          <li>
+            [d] = Toggle Mode - {showDifficulty ? "Difficulty" : "Preferences"}
+          </li>
+          {showDifficulty ? (
+            <li>Black = Difficulty - {activeItem?.difficulty}</li>
+          ) : (
+            <>
+              <li>Green = Mutual</li>
+              <li>Yellow = Selected Wants</li>
+              <li>Blue = Wants Selected</li>
+            </>
+          )}
         </ul>
       </div>
     </div>

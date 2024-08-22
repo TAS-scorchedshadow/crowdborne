@@ -20,11 +20,29 @@ npm run tauri dev
 
 ## File Format
 
-```csv
-name,role,lead_preferences,trainee_preferences,difficulty,github,discord,group
-a,trainee,"b,c",,easy,example,example,0
-b,lead,,a,normal,example,example,0
-v,lead,b,a,arbitrary,example,example,0
+Columns as follows
+
+```
+name
+role
+lead_preferences (comma seperated list of names)
+trainee_preferences (comma seperated list of names)
+difficulty (string representing a desired difficulty/goal for a person. Used to highlight people with similar difficulty preferences)
+group (assigned group name, defaults to empty string)
+[github]
+[discord]
+[other]
+
+--
+[] = optional fields
+Trainee and lead preferences are simply 2 different input fields that are merged. If you don't have 2 groups you can simply use one field and leave the other blank
 ```
 
-Both lead preferences and trainee preference fields should be a list of comma seperated identifiers
+Example
+
+```csv
+name,role,lead_preferences,trainee_preferences,difficulty,group
+a,trainee,"b,c",,easy,"team a"
+b,lead,,a,normal,"team b"
+v,lead,b,a,arbitrary,"team c"
+```
